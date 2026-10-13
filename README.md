@@ -2,31 +2,39 @@
 
 An event-driven Python system for researching and executing hedged long-short positions in the same USDT-margined perpetual futures across Binance, OKX, Gate, and Bitget.
 
-The system models leader-follower price discovery and relative-value mean reversion with rolling-median equilibrium spreads. It selects liquid contracts shared by the four venues, normalizes their WebSocket market data, and evaluates temporary residual deviations following leading-venue price moves. A market event becomes eligible for execution only after order-book liquidity, fees, funding, contract rules, account state, and portfolio limits have been evaluated.
+The system tracks temporary deviations from rolling cross-venue equilibrium spreads following leading-venue price moves. Signals, execution feasibility, position management, and capital allocation are handled as separate stages so that a detected market event does not become an order without cost and risk checks.
 
 > Research software for educational use. This repository does not provide investment advice or claim that the strategy is profitable.
 
-## Implemented workflow
+## System at a glance
 
-### Statistical arbitrage model
+| Layer | Implemented behavior | Main modules |
+|---|---|---|
+| Signal model | Rolling-median equilibrium spreads, leader-move confirmation, residual direction checks, warm-up, and signal cooldowns | `tracker/baseline.py`, `tracker/signal_detector.py` |
+| Market-data path | Dynamic selection of liquid contracts shared by four venues; normalized WebSocket ticks processed in memory on an `asyncio` event loop | `tracker/symbol_selector.py`, `tracker/ws_feed.py`, `tracker/tracker.py` |
+| Execution and risk | Order-book-aware cost estimation, contract normalization, concurrent two-leg orders, asymmetric-fill recovery, lifecycle exits, exposure limits, and capital rebalancing | `trader/`, `rebalance/` |
+| Validation and operation | Public-data mode, demo/testnet workflows, authenticated live reads, explicit live-mode confirmation, and exchange-facing integration checks | `test_demo/`, `test_live/`, `main.py` |
 
-The research model represents the spread between a leading venue and a follower venue as a rolling equilibrium component plus a temporary residual. A candidate event requires both a leading-venue price move and a same-direction residual deviation, so the detector distinguishes a leader-following dislocation from a persistent cross-venue premium.
+## System architecture
 
-### Event-driven market-data pipeline
+```mermaid
+flowchart LR
+    A[Binance / OKX / Gate / Bitget] --> B[Normalized WebSocket ticks]
+    B --> C[Rolling pair baselines]
+    B --> D[Leader-move detector]
+    C --> D
+    D --> E[Candidate market event]
+    E --> F{Cost and risk checks}
+    F -->|Reject| G[Signal and audit logs]
+    F -->|Accept| H[Concurrent two-leg orders]
+    H --> I{Execution result}
+    I -->|Both filled| J[Position monitoring]
+    I -->|One leg filled| K[Emergency unwind]
+    J --> L[Funding / timeout / TP / SL exits]
+    L --> M[Concurrent close orders]
+```
 
-The `asyncio` pipeline dynamically selects high-liquidity USDT perpetuals available on all four exchanges. Venue-specific WebSocket messages are converted into a common tick representation and processed in memory for spread estimation, leader-move detection, and signal generation. REST requests provide contract metadata, funding rates, account state, and order operations outside the public tick path.
-
-### Execution, exposure, and capital controls
-
-Each candidate passes through an order-book-aware cost and feasibility model before submission. The model sizes both legs to a common base-asset quantity and accounts for four taker-fee legs, expected holding-period funding, depth-based slippage when order books are available, BBO-based fallback slippage, contract multipliers, quantity precision, and minimum notionals. Positions are admitted only when the expected net return remains above the configured threshold and the relevant account and concentration limits permit entry.
-
-The opening orders are submitted concurrently to avoid an intentional sequential delay between venues. Because cross-exchange execution is not atomic, the result of each leg is reconciled explicitly: two successful legs create a monitored position; one successful leg triggers an immediate reversal attempt; and repeated failures contribute to a timed entry cooldown. Open positions are monitored using actual fills and current prices, with exits for unfavorable funding near settlement, maximum holding time, take-profit, and stop-loss conditions. Stop-loss events suspend new entries for the remainder of the UTC day, while the daily balance threshold halts new risk and allows existing positions to close before shutdown.
-
-Portfolio and operational controls include per-pair and per-symbol position limits, symbol-notional concentration limits, per-exchange balance checks, order-rate limits, live-mode preflight checks, and critical logging when a close leg fails. A separate rebalancing workflow monitors cash distribution across exchanges, pauses new entries during a rebalance, evaluates transfer routes and fees, and supports dry-run planning before any transfer or withdrawal is requested.
-
-### Validation and operating modes
-
-The repository separates public-data observation, demo/testnet interaction, authenticated live reads, and live execution. It includes exchange-facing checks for connectivity, accounts, order books, contracts, funding, orders, cancellations, and transfers. The system was also used for small-scale live validation; private account identifiers, balances, credentials, and transaction records are not included.
+The public tick path runs in one Python process without a database, message broker, or external cache. Authenticated REST clients handle contract metadata, balances, funding rates, orders, and transfers. See [Architecture](docs/ARCHITECTURE.md) for component boundaries and execution sequences.
 
 ## Research model
 
@@ -50,29 +58,6 @@ This separates temporary dislocations from persistent venue premia. A market eve
 4. completion of the baseline warm-up period and direction-specific cooldown.
 
 The detector records a market observation rather than an order instruction. Execution feasibility is evaluated separately.
-
-## System architecture
-
-```mermaid
-flowchart LR
-    A[Binance / OKX / Gate / Bitget] --> B[Normalized WebSocket ticks]
-    B --> C[Rolling pair baselines]
-    B --> D[Leader-move detector]
-    C --> D
-    D --> E[Candidate market event]
-    E --> F{Cost and risk checks}
-    F -->|Reject| G[Signal and audit logs]
-    F -->|Accept| H[Concurrent two-leg orders]
-    H --> I{Execution result}
-    I -->|Both filled| J[Position monitoring]
-    I -->|One leg filled| K[Emergency unwind]
-    J --> L[Funding / timeout / TP / SL exits]
-    L --> M[Concurrent close orders]
-```
-
-The signal path runs in one Python process on an `asyncio` event loop. Public WebSocket and REST data are consumed directly; authenticated REST clients handle exchange-specific account and order operations. No database, message broker, or external cache is used on the signal path.
-
-See [Architecture](docs/ARCHITECTURE.md) for component boundaries and execution sequences.
 
 ## Execution and risk controls
 
