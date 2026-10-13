@@ -13,7 +13,7 @@ The diagram below shows code-level dependencies rather than the chronological tr
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"},"flowchart":{"subGraphTitleMargin":{"top":14,"bottom":18}}}}%%
 flowchart TB
-    subgraph Venues
+    subgraph Venues["Venues&#160;"]
         BN[Binance]
         OK[OKX]
         GA[Gate]
@@ -24,7 +24,7 @@ flowchart TB
         GA --> API
         BG --> API
     end
-    subgraph Process
+    subgraph Process["Process&#160;"]
         U[SymbolSelector]
         W[WSFeed]
         T[Tracker]
