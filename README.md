@@ -19,17 +19,26 @@ The system tracks temporary deviations from rolling cross-venue equilibrium spre
 
 ```mermaid
 flowchart TB
-    A[Four exchange venues] --> B[Shared universe and normalized WebSocket ticks]
-    B --> C[Rolling baselines and leader-move detection]
-    C --> D[Candidate market event]
-    D --> E{Cost and risk checks}
-    E -->|Reject| F[Signal and audit logs]
-    E -->|Accept| G[Concurrent two-leg orders]
-    G --> H{Execution result}
-    H -->|Both filled| I[Position monitoring]
-    H -->|One leg filled| J[Emergency unwind]
-    I --> K[Funding / timeout / TP / SL exits]
-    K --> L[Concurrent close orders]
+    subgraph S1[Market data and signal]
+        direction LR
+        A[Four venues] --> B[Shared universe]
+        B --> C[Normalized WebSocket ticks]
+        C --> D[Baseline and leader-move detection]
+    end
+    D --> E{Candidate passes cost and risk checks?}
+    subgraph S2[Execution decision]
+        direction LR
+        E -->|Reject| F[Signal and audit logs]
+        E -->|Accept| G[Concurrent two-leg orders]
+        G --> H{Execution result}
+    end
+    subgraph S3[Position lifecycle]
+        direction LR
+        H -->|One leg filled| I[Emergency unwind]
+        H -->|Both filled| J[Position monitoring]
+        J --> K[Funding / timeout / TP / SL exits]
+        K --> L[Concurrent close orders]
+    end
 ```
 
 The public tick path runs in one Python process without a database, message broker, or external cache. Authenticated REST clients handle contract metadata, balances, funding rates, orders, and transfers. See [Architecture](docs/ARCHITECTURE.md) for component boundaries and execution sequences.
