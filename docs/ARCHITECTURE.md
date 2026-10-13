@@ -11,9 +11,9 @@ The system runs as one Python process on an `asyncio` event loop. It connects di
 The diagram below shows code-level dependencies rather than the chronological trading workflow.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"},"flowchart":{"subGraphTitleMargin":{"top":14,"bottom":18}}}}%%
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"},"flowchart":{"htmlLabels":false,"subGraphTitleMargin":{"top":14,"bottom":18}}}}%%
 flowchart TB
-    subgraph Venues["Venues&#160;"]
+    subgraph Venues
         BN[Binance]
         OK[OKX]
         GA[Gate]
@@ -24,7 +24,7 @@ flowchart TB
         GA --> API
         BG --> API
     end
-    subgraph Process["Process&#160;"]
+    subgraph Process
         U[SymbolSelector]
         W[WSFeed]
         T[Tracker]
