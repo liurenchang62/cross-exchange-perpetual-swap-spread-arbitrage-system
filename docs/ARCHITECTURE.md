@@ -2,11 +2,13 @@
 
 [Project overview](../README.md) · [Operations](OPERATIONS.md) · [Configuration](../CONFIG_GUIDE.md)
 
-This document describes the checked-in implementation and separates system behavior from unmeasured trading outcomes.
+This document describes internal component ownership, execution sequencing, and design boundaries. The project-level workflow is summarized in the [README](../README.md); it is not repeated here.
 
-## Context
+## Component architecture
 
 The system runs as one Python process on an `asyncio` event loop. It connects directly to Binance, OKX, Gate, and Bitget through public WebSocket/REST endpoints and authenticated REST endpoints. No database, broker, or external cache sits on the signal path.
+
+The diagram below shows code-level dependencies rather than the chronological trading workflow.
 
 ```mermaid
 flowchart TB
@@ -110,7 +112,7 @@ sequenceDiagram
     end
 ```
 
-The cost model incorporates configured taker fees, expected holding-period funding, BBO-derived slippage, contract multipliers, quantity precision, and minimum notionals.
+The cost model incorporates configured taker fees, expected holding-period funding, order-book depth or best-bid-and-offer spread slippage, contract multipliers, quantity precision, and minimum notionals.
 
 ## Position lifecycle
 
@@ -129,7 +131,7 @@ The current exit order is unfavorable funding near settlement, timeout, take-pro
 
 Risk is evaluated across four connected layers rather than as a single entry filter:
 
-1. **Trade economics.** `CostModel` converts the signal into a common two-leg quantity and estimates round-trip taker fees, holding-period funding, and slippage. It uses order-book depth when available and a BBO-spread fallback otherwise, then applies contract multipliers, quantity steps, venue minimums, and the configured net-return threshold.
+1. **Trade economics.** `CostModel` converts the signal into a common two-leg quantity and estimates round-trip taker fees, holding-period funding, and slippage. It uses order-book depth when available and a best-bid-and-offer spread fallback otherwise, then applies contract multipliers, quantity steps, venue minimums, and the configured net-return threshold.
 2. **Admission and concentration.** `RiskManager`, `PositionManager`, and `Trader` check venue balances, order frequency, position counts by pair and symbol, symbol notional relative to equity, daily-loss state, post-stop-loss suspension, execution-failure cooldown, and whether rebalancing has paused new entries.
 3. **Execution and position recovery.** Opening and closing legs are submitted concurrently. A one-leg opening fill triggers an immediate reversal attempt. Existing matched positions can be loaded during live startup, and close-leg failures are reported as critical events because residual exposure may remain.
 4. **Capital distribution.** Balance refreshes support venue-level entry eligibility. `RebalanceSupervisor` checks cash concentration across exchanges, pauses entries while rebalancing, evaluates transfer routes and fee limits, and waits for transfers or deposits before resuming normal entry checks.

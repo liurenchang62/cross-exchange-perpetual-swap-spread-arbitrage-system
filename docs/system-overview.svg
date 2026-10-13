@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Cross-exchange spread arbitrage system workflow</title>
+  <desc id="desc">Three-stage workflow covering market data and signal generation, execution decisions, and position and capital management.</desc>
+  <defs>
+    <style>
+      .band { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
+      .box { fill: #ffffff; stroke: #57606a; stroke-width: 1.5; rx: 8; }
+      .decision { fill: #fff8c5; stroke: #9a6700; stroke-width: 1.5; rx: 8; }
+      .recovery { fill: #ffebe9; stroke: #cf222e; stroke-width: 1.5; rx: 8; }
+      .stage { font: 600 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #24292f; }
+      .label { font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #24292f; text-anchor: middle; }
+      .edge-label { font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #57606a; text-anchor: middle; }
+      .arrow { fill: none; stroke: #57606a; stroke-width: 2; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <rect class="band" x="20" y="20" width="1160" height="160" rx="12"/>
+  <text class="stage" x="45" y="52">1  Market data and signal generation</text>
+  <rect class="box" x="55" y="78" width="220" height="70"/>
+  <text class="label" x="165" y="108"><tspan x="165">Perpetual futures shared</tspan><tspan x="165" dy="22">across four venues</tspan></text>
+  <rect class="box" x="335" y="78" width="220" height="70"/>
+  <text class="label" x="445" y="108"><tspan x="445">Normalized WebSocket</tspan><tspan x="445" dy="22">market data</tspan></text>
+  <rect class="box" x="615" y="78" width="220" height="70"/>
+  <text class="label" x="725" y="108"><tspan x="725">Rolling equilibrium</tspan><tspan x="725" dy="22">spread</tspan></text>
+  <rect class="box" x="895" y="78" width="220" height="70"/>
+  <text class="label" x="1005" y="108"><tspan x="1005">Leader move and</tspan><tspan x="1005" dy="22">residual deviation</tspan></text>
+  <path class="arrow" d="M275 113 H327"/>
+  <path class="arrow" d="M555 113 H607"/>
+  <path class="arrow" d="M835 113 H887"/>
+
+  <rect class="band" x="20" y="205" width="1160" height="185" rx="12"/>
+  <text class="stage" x="45" y="237">2  Execution decision and fill reconciliation</text>
+  <rect class="decision" x="55" y="270" width="250" height="80"/>
+  <text class="label" x="180" y="299"><tspan x="180">Order-book, cost, contract</tspan><tspan x="180" dy="22">and portfolio checks</tspan></text>
+  <rect class="box" x="365" y="270" width="220" height="80"/>
+  <text class="label" x="475" y="299"><tspan x="475">Concurrent two-leg</tspan><tspan x="475" dy="22">order submission</tspan></text>
+  <rect class="decision" x="645" y="270" width="210" height="80"/>
+  <text class="label" x="750" y="299"><tspan x="750">Per-leg execution</tspan><tspan x="750" dy="22">result</tspan></text>
+  <rect class="recovery" x="915" y="255" width="220" height="55"/>
+  <text class="label" x="1025" y="288">Emergency reversal</text>
+  <rect class="box" x="915" y="325" width="220" height="55"/>
+  <text class="label" x="1025" y="358">Register hedged position</text>
+  <path class="arrow" d="M305 310 H357"/>
+  <path class="arrow" d="M585 310 H637"/>
+  <path class="arrow" d="M855 295 H907"/>
+  <path class="arrow" d="M855 325 H907"/>
+  <text class="edge-label" x="880" y="282">one leg filled</text>
+  <text class="edge-label" x="881" y="350">both legs filled</text>
+
+  <rect class="band" x="20" y="415" width="1160" height="185" rx="12"/>
+  <text class="stage" x="45" y="447">3  Position, risk and capital management</text>
+  <rect class="box" x="55" y="485" width="245" height="80"/>
+  <text class="label" x="177" y="514"><tspan x="177">Monitor actual fills and</tspan><tspan x="177" dy="22">cross-venue prices</tspan></text>
+  <rect class="box" x="355" y="485" width="245" height="80"/>
+  <text class="label" x="477" y="503"><tspan x="477">Funding, maximum holding time,</tspan><tspan x="477" dy="22">take-profit and stop-loss</tspan><tspan x="477" dy="22">exit rules</tspan></text>
+  <rect class="box" x="655" y="485" width="220" height="80"/>
+  <text class="label" x="765" y="514"><tspan x="765">Concurrent two-leg</tspan><tspan x="765" dy="22">position close</tspan></text>
+  <rect class="box" x="930" y="485" width="205" height="80"/>
+  <text class="label" x="1032" y="503"><tspan x="1032">Balance monitoring,</tspan><tspan x="1032" dy="22">daily limits and</tspan><tspan x="1032" dy="22">capital rebalancing</tspan></text>
+  <path class="arrow" d="M300 525 H347"/>
+  <path class="arrow" d="M600 525 H647"/>
+  <path class="arrow" d="M875 525 H922"/>
+  <path class="arrow" d="M1025 380 V405 H177 V477"/>
+</svg>

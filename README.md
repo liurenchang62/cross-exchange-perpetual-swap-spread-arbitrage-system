@@ -15,33 +15,11 @@ The system tracks temporary deviations from rolling cross-venue equilibrium spre
 | Execution and risk | Order-book-aware cost estimation, contract normalization, concurrent two-leg orders, asymmetric-fill recovery, lifecycle exits, exposure limits, and capital rebalancing | `trader/`, `rebalance/` |
 | Validation and operation | Public-data mode, demo/testnet workflows, authenticated live reads, explicit live-mode confirmation, and exchange-facing integration checks | `test_demo/`, `test_live/`, `main.py` |
 
-## System architecture
+## System workflow
 
-```mermaid
-flowchart TB
-    subgraph S1[Market data and signal]
-        direction LR
-        A[Four venues] --> B[Shared universe]
-        B --> C[Normalized WebSocket ticks]
-        C --> D[Baseline and leader-move detection]
-    end
-    D --> E{Candidate passes cost and risk checks?}
-    subgraph S2[Execution decision]
-        direction LR
-        E -->|Reject| F[Signal and audit logs]
-        E -->|Accept| G[Concurrent two-leg orders]
-        G --> H{Execution result}
-    end
-    subgraph S3[Position lifecycle]
-        direction LR
-        H -->|One leg filled| I[Emergency unwind]
-        H -->|Both filled| J[Position monitoring]
-        J --> K[Funding / timeout / TP / SL exits]
-        K --> L[Concurrent close orders]
-    end
-```
+![System workflow from market data to capital management](docs/system-overview.svg)
 
-The public tick path runs in one Python process without a database, message broker, or external cache. Authenticated REST clients handle contract metadata, balances, funding rates, orders, and transfers. See [Architecture](docs/ARCHITECTURE.md) for component boundaries and execution sequences.
+The workflow separates market observation from execution approval. The public tick path runs in one Python process without a database, message broker, or external cache; authenticated REST clients handle contract metadata, balances, funding rates, orders, and transfers. See [Architecture](docs/ARCHITECTURE.md) for internal component boundaries and execution sequences.
 
 ## Research model
 
@@ -70,32 +48,25 @@ The detector records a market observation rather than an order instruction. Exec
 
 Controls are applied at different stages of the position lifecycle:
 
-| Stage | Implemented checks and responses |
+| Layer | Implemented checks and responses |
 |---|---|
-| Candidate evaluation | Taker fees for entry and exit, expected funding, depth-walk or BBO-derived slippage, contract multipliers, quantity steps, minimum size, minimum notional, and minimum expected net ROI |
-| Entry admission | Per-exchange available balance, position limits by pair and symbol, symbol-notional concentration, order-rate limits, daily-loss state, stop-loss suspension, failure cooldown, and rebalance pause |
-| Two-leg execution | Concurrent order submission, per-leg result reconciliation, immediate reversal attempt after a one-leg fill, and failure counting when execution is incomplete |
-| Position monitoring | Actual entry fills, current cross-venue prices, unfavorable funding near settlement, maximum holding time, take-profit, and stop-loss conditions |
-| Exit and recovery | Concurrent close orders, critical reporting of residual exposure after a close-leg failure, account and position inspection tools, and loading of matched live positions at startup |
-| Capital allocation | Periodic exchange-balance refresh, venue-level close-only behavior when available capital is insufficient, cash-distribution checks, fee-aware transfer routing, and entry suspension during rebalancing |
+| Trade economics | Round-trip taker fees, expected holding-period funding, order-book depth or best-bid-and-offer spread slippage, contract multipliers, quantity steps, venue minimums, and minimum expected net return |
+| Two-leg execution | Common base-asset sizing, concurrent submission, per-leg result reconciliation, immediate reversal after a one-leg fill, and critical reporting when a closing leg fails |
+| Position and portfolio risk | Actual-fill monitoring, unfavorable funding exits, maximum holding time, take-profit and stop-loss rules, position-count limits, symbol-notional concentration, order-rate limits, and failure cooldowns |
+| Capital controls | Per-exchange balance checks, venue-level close-only behavior, daily balance halt, post-stop-loss entry suspension, fee-aware transfer routing, and entry suspension during rebalancing |
 
 These controls reduce avoidable execution and concentration risks but do not make two-venue orders atomic. Network failures, venue outages, rejected orders, or partial execution can still leave temporary directional exposure and require operator review.
 
-## Repository structure
+## Validation and operating modes
 
-```text
-.
-├── main.py                  # Process lifecycle and live-mode preflight
-├── tracker/                 # Market data, universe, baselines, and signals
-├── trader/                  # Cost model, execution, positions, and risk
-├── rebalance/               # Cash-distribution checks and transfer planning
-├── clients/                 # Venue URLs, symbol mapping, credential templates
-├── test_demo/               # Demo/testnet integration checks
-├── test_live/               # Live read-only and explicitly confirmed checks
-├── tools/                   # Account, cash-flow, and recovery utilities
-├── server/                  # Deployment and synchronization helpers
-└── docs/                    # Architecture and operating documentation
-```
+| Mode | Scope | Financial side effects |
+|---|---|---|
+| Public-data observation | Universe selection, WebSocket normalization, spread tracking, and signal logging | None beyond network requests and local files |
+| Demo/testnet | Account, order, cancellation, position, and supported transfer workflows | Test-environment activity |
+| Live read-only checks | Connectivity, account state, order books, contracts, and funding data | Authenticated reads only by default |
+| Live execution | Preflight checks, existing-position loading, order submission, position exits, and capital operations | Requires an exact confirmation and can create market exposure |
+
+The system was used for small-scale live validation with dedicated testnet and live workflows. Results remain dependent on exchange availability, credentials, permissions, clock synchronization, network region, and account state. Private account identifiers, balances, credentials, and transaction records are not published, and an integration run does not establish strategy profitability.
 
 ## Quick start
 
@@ -130,6 +101,22 @@ python main.py --live
 
 Read [Operations and validation](docs/OPERATIONS.md) before using live commands. Some utilities can place orders, transfer assets, or request withdrawals.
 
+## Repository structure
+
+```text
+.
+├── main.py                  # Process lifecycle and live-mode preflight
+├── tracker/                 # Market data, universe, baselines, and signals
+├── trader/                  # Cost model, execution, positions, and risk
+├── rebalance/               # Cash-distribution checks and transfer planning
+├── clients/                 # Venue URLs, symbol mapping, credential templates
+├── test_demo/               # Demo/testnet integration checks
+├── test_live/               # Live read-only and explicitly confirmed checks
+├── tools/                   # Account, cash-flow, and recovery utilities
+├── server/                  # Deployment and synchronization helpers
+└── docs/                    # Architecture and operating documentation
+```
+
 ## Default configuration
 
 | Concern | Checked-in default |
@@ -145,23 +132,6 @@ Read [Operations and validation](docs/OPERATIONS.md) before using live commands.
 
 The source of truth is `tracker/config.py` and `trader/config.py`. These values are runtime defaults, not empirical results.
 
-## Validation scope
-
-The included checks are exchange-facing integration checks rather than a hermetic unit-test suite. They cover demo account, position, order, cancellation, and transfer flows; live connectivity, account, order-book, contract, and funding reads; and explicitly confirmed live order or transfer paths.
-
-Results depend on exchange availability, credentials, permissions, clock synchronization, network region, and account state. A successful integration run does not establish strategy profitability.
-
-The system was developed with separate testnet and live-trading workflows and was used for small-scale live validation. Account identifiers, balances, credentials, and transaction records are not published.
-
-## Module guides
-
-- [Market data and signal generation](tracker/README.md)
-- [Execution, positions, and risk](trader/README.md)
-- [Exchange configuration and credentials](clients/README.md)
-- [Capital rebalancing](rebalance/README.md)
-- [Validation suites](test_demo/README.md)
-- [Operational utilities](tools/README.md)
-
 ## Documentation
 
 - [Architecture and design boundaries](docs/ARCHITECTURE.md)
@@ -169,6 +139,10 @@ The system was developed with separate testnet and live-trading workflows and wa
 - [Configuration and credential handling](CONFIG_GUIDE.md)
 - [Command reference](COMMANDS.md)
 - [Security policy](SECURITY.md)
+- [Market data and signal generation](tracker/README.md)
+- [Execution, positions, and risk](trader/README.md)
+- [Capital rebalancing](rebalance/README.md)
+- [Validation suites](test_demo/README.md)
 
 ## Limitations
 
