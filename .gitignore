@@ -33,7 +33,7 @@ Thumbs.db
 *.pem
 env/
 
-# API Keys & 链上地址（勿提交）
+# API keys and withdrawal addresses (never commit)
 clients/api_keys.py
 clients/api_keys_live.py
 clients/api_keys_demo.py
@@ -41,7 +41,7 @@ clients/withdrawal_addresses.py
 
 trader_config.ref.txt
 
-# 密钥存储目录（如果使用文件方式存储密钥）
+# Local secret storage
 /root/.secrets/
 /root/.secrets_demo/
 *.key
@@ -53,5 +53,5 @@ logs/*.log
 logs/*.csv
 tools/out/*.csv
 
-# 本地部署脚本（勿提交密码）
+# Local deployment helpers (never commit passwords)
 _deploy.ps1

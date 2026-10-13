@@ -12,7 +12,8 @@
     powershell -ExecutionPolicy Bypass -File .\server\sync_secrets_to_server.ps1 -Server "x.x.x.x"
 #>
 param(
-    [string] $Server = $(if ($env:SPREAD_HUNTER_SERVER) { $env:SPREAD_HUNTER_SERVER } else { "45.76.202.248" }),
+    [Parameter(Mandatory = $true)]
+    [string] $Server,
     [string] $User = "root",
     [string] $RemoteBase = "/root/spread_hunter_python"
 )

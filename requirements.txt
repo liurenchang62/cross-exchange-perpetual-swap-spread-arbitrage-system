@@ -1,0 +1,6 @@
+# Runtime dependencies for Python 3.10+
+aiohttp>=3.9,<4
+websockets>=12,<16
+requests>=2.31,<3
+urllib3>=2,<3
+orjson>=3.9,<4

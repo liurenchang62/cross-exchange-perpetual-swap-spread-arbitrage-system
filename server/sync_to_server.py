@@ -8,7 +8,7 @@ Uploads (skips .venv, __pycache__, logs/, tools/out/, etc.):
 
 Environment variables (set in Windows system vars or current session):
   SERVER_PASSWORD     — required
-  SERVER_HOST / SPREAD_HUNTER_SERVER — optional, default 45.76.202.248
+  SERVER_HOST / SPREAD_HUNTER_SERVER — required
   SERVER_USER         — optional, default root
   SERVER_REMOTE       — optional, default /root/spread_hunter_python
   SERVER_PORT         — optional, default 22
@@ -113,11 +113,10 @@ def connect():
         sys.stderr.write("Set SERVER_PASSWORD environment variable.\n")
         raise SystemExit(1)
 
-    host = (
-        os.environ.get("SERVER_HOST")
-        or os.environ.get("SPREAD_HUNTER_SERVER")
-        or "45.76.202.248"
-    )
+    host = os.environ.get("SERVER_HOST") or os.environ.get("SPREAD_HUNTER_SERVER")
+    if not host:
+        sys.stderr.write("Set SERVER_HOST or SPREAD_HUNTER_SERVER environment variable.\n")
+        raise SystemExit(1)
     user = os.environ.get("SERVER_USER", "root")
     remote = os.environ.get("SERVER_REMOTE", "/root/spread_hunter_python").rstrip("/")
     port = int(os.environ.get("SERVER_PORT", "22"))

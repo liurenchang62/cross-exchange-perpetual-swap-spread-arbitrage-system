@@ -1,14 +1,14 @@
 """
-主入口：同时启动 Tracker（行情监控）+ Trader（下单执行）。
+Application entry point for the market-data tracker and trading orchestrator.
 
-用法：
-    python main.py          # 测试网/Demo（云服务器等直连交易所 API）
-    python main.py --live   # 主网实盘（慎用！）
+Usage:
+    python main.py          # Demo/testnet mode
+    python main.py --live   # Live mode with preflight and explicit confirmation
 
-退出码：
-    0  — 正常退出（Ctrl+C 或 tracker 完成）
-    1  — 日止损停机（daily_loss halt）
-    2  — 未预期的异常
+Exit codes:
+    0  Normal shutdown
+    1  Daily-loss halt
+    2  Unexpected error
 """
 
 import argparse
