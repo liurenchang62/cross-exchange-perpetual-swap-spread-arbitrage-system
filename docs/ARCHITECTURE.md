@@ -11,6 +11,7 @@ The system runs as one Python process on an `asyncio` event loop. It connects di
 The diagram below shows code-level dependencies rather than the chronological trading workflow.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"}}}%%
 flowchart TB
     subgraph Venues
         BN[Binance]
@@ -48,6 +49,12 @@ flowchart TB
     RB --> X
     T --> L
     P --> L
+    classDef standard fill:#ffffff,stroke:#57606a,color:#24292f,stroke-width:1.5px;
+    classDef control fill:#fff8c5,stroke:#9a6700,color:#24292f,stroke-width:1.5px;
+    class BN,OK,GA,BG,U,W,T,B,S,TR,P,X,RB,L standard;
+    class C,R control;
+    style Venues fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
+    style Process fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
 ```
 
 The single event loop keeps state coordination direct. Synchronous work on the tick path must remain short; network operations are scheduled as asynchronous tasks.
@@ -83,6 +90,7 @@ Direct in-process callbacks avoid a queue on the normal signal path. This is a l
 ## Entry sequence
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","actorBkg":"#ffffff","actorBorder":"#57606a","actorTextColor":"#24292f","actorLineColor":"#8c959f","signalColor":"#57606a","signalTextColor":"#24292f","labelBoxBkgColor":"#f6f8fa","labelBoxBorderColor":"#d0d7de","labelTextColor":"#24292f","loopTextColor":"#24292f","activationBkgColor":"#fff8c5","activationBorderColor":"#9a6700","noteBkgColor":"#fff8c5","noteBorderColor":"#9a6700"}}}%%
 sequenceDiagram
     participant Feed as WSFeed
     participant Tracker
