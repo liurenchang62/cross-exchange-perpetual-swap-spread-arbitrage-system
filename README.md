@@ -1,22 +1,32 @@
 # Cross-Exchange Perpetual Swap Spread Arbitrage System
 
-An event-driven Python system for studying and executing hedged long-short positions in the same USDT-margined perpetual futures across Binance, OKX, Gate, and Bitget.
+An event-driven Python system for researching and executing hedged long-short positions in the same USDT-margined perpetual futures across Binance, OKX, Gate, and Bitget.
 
-The project models leader-follower price discovery with rolling-median equilibrium spreads. A candidate is generated only when a leading-venue price move and a same-direction residual deviation occur together. Candidate signals then pass through transaction-cost, contract, liquidity, capital, and operational risk checks before any two-leg order is submitted.
+The system models leader-follower price discovery and relative-value mean reversion with rolling-median equilibrium spreads. It selects liquid contracts shared by the four venues, normalizes their WebSocket market data, and evaluates temporary residual deviations following leading-venue price moves. A market event becomes eligible for execution only after order-book liquidity, fees, funding, contract rules, account state, and portfolio limits have been evaluated.
 
 > Research software for educational use. This repository does not provide investment advice or claim that the strategy is profitable.
 
-## Project scope
+## Implemented workflow
 
-The repository implements the full path from public market data to guarded execution:
+### Statistical arbitrage model
 
-- dynamic selection of liquid perpetual futures shared by all four exchanges;
-- normalized WebSocket market data and in-memory online spread estimation;
-- leader-move detection and residual-based signal generation;
-- order-book-aware evaluation of fees, funding rates, slippage, precision, and minimum notional;
-- concurrent two-leg submission with explicit handling of asymmetric fills;
-- position monitoring, exit controls, daily-loss limits, failure cooldowns, and capital rebalancing;
-- separate demo/testnet and live-trading workflows with live-mode preflight checks.
+The research model represents the spread between a leading venue and a follower venue as a rolling equilibrium component plus a temporary residual. A candidate event requires both a leading-venue price move and a same-direction residual deviation, so the detector distinguishes a leader-following dislocation from a persistent cross-venue premium.
+
+### Event-driven market-data pipeline
+
+The `asyncio` pipeline dynamically selects high-liquidity USDT perpetuals available on all four exchanges. Venue-specific WebSocket messages are converted into a common tick representation and processed in memory for spread estimation, leader-move detection, and signal generation. REST requests provide contract metadata, funding rates, account state, and order operations outside the public tick path.
+
+### Execution, exposure, and capital controls
+
+Each candidate passes through an order-book-aware cost and feasibility model before submission. The model sizes both legs to a common base-asset quantity and accounts for four taker-fee legs, expected holding-period funding, depth-based slippage when order books are available, BBO-based fallback slippage, contract multipliers, quantity precision, and minimum notionals. Positions are admitted only when the expected net return remains above the configured threshold and the relevant account and concentration limits permit entry.
+
+The opening orders are submitted concurrently to avoid an intentional sequential delay between venues. Because cross-exchange execution is not atomic, the result of each leg is reconciled explicitly: two successful legs create a monitored position; one successful leg triggers an immediate reversal attempt; and repeated failures contribute to a timed entry cooldown. Open positions are monitored using actual fills and current prices, with exits for unfavorable funding near settlement, maximum holding time, take-profit, and stop-loss conditions. Stop-loss events suspend new entries for the remainder of the UTC day, while the daily balance threshold halts new risk and allows existing positions to close before shutdown.
+
+Portfolio and operational controls include per-pair and per-symbol position limits, symbol-notional concentration limits, per-exchange balance checks, order-rate limits, live-mode preflight checks, and critical logging when a close leg fails. A separate rebalancing workflow monitors cash distribution across exchanges, pauses new entries during a rebalance, evaluates transfer routes and fees, and supports dry-run planning before any transfer or withdrawal is requested.
+
+### Validation and operating modes
+
+The repository separates public-data observation, demo/testnet interaction, authenticated live reads, and live execution. It includes exchange-facing checks for connectivity, accounts, order books, contracts, funding, orders, cancellations, and transfers. The system was also used for small-scale live validation; private account identifiers, balances, credentials, and transaction records are not included.
 
 ## Research model
 
@@ -66,18 +76,18 @@ See [Architecture](docs/ARCHITECTURE.md) for component boundaries and execution 
 
 ## Execution and risk controls
 
-Before opening a position, the system checks:
+Controls are applied at different stages of the position lifecycle:
 
-- expected fees, funding cost, and order-book slippage;
-- contract multipliers, quantity precision, and venue minimums;
-- available balances and per-symbol concentration;
-- per-exchange order-rate limits;
-- consecutive execution failures and cooldown state;
-- daily balance halt and post-stop-loss entry suspension.
+| Stage | Implemented checks and responses |
+|---|---|
+| Candidate evaluation | Taker fees for entry and exit, expected funding, depth-walk or BBO-derived slippage, contract multipliers, quantity steps, minimum size, minimum notional, and minimum expected net ROI |
+| Entry admission | Per-exchange available balance, position limits by pair and symbol, symbol-notional concentration, order-rate limits, daily-loss state, stop-loss suspension, failure cooldown, and rebalance pause |
+| Two-leg execution | Concurrent order submission, per-leg result reconciliation, immediate reversal attempt after a one-leg fill, and failure counting when execution is incomplete |
+| Position monitoring | Actual entry fills, current cross-venue prices, unfavorable funding near settlement, maximum holding time, take-profit, and stop-loss conditions |
+| Exit and recovery | Concurrent close orders, critical reporting of residual exposure after a close-leg failure, account and position inspection tools, and loading of matched live positions at startup |
+| Capital allocation | Periodic exchange-balance refresh, venue-level close-only behavior when available capital is insufficient, cash-distribution checks, fee-aware transfer routing, and entry suspension during rebalancing |
 
-The two opening legs are submitted concurrently. Cross-exchange execution is not atomic: if only one leg succeeds, the system attempts to reverse the filled leg immediately. Close-leg failures are logged as critical events and require inspection for residual exposure.
-
-Open positions are evaluated from current market prices and actual entry fills. Exit checks include unfavorable funding near settlement, maximum holding time, take-profit, and stop-loss conditions.
+These controls reduce avoidable execution and concentration risks but do not make two-venue orders atomic. Network failures, venue outages, rejected orders, or partial execution can still leave temporary directional exposure and require operator review.
 
 ## Repository structure
 

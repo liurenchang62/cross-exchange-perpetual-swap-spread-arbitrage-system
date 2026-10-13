@@ -127,15 +127,14 @@ The current exit order is unfavorable funding near settlement, timeout, take-pro
 
 ## Risk and capital state
 
-`RiskManager` maintains process-level controls independently of signal generation:
+Risk is evaluated across four connected layers rather than as a single entry filter:
 
-- daily balance halt and exit after positions are flat;
-- entry suspension after a stop-loss until UTC midnight;
-- maximum positions per pair and symbol;
-- maximum symbol notional relative to equity;
-- per-exchange order-rate limits;
-- cooldown after consecutive failures;
-- balance and cash-ratio conditions used by rebalancing.
+1. **Trade economics.** `CostModel` converts the signal into a common two-leg quantity and estimates round-trip taker fees, holding-period funding, and slippage. It uses order-book depth when available and a BBO-spread fallback otherwise, then applies contract multipliers, quantity steps, venue minimums, and the configured net-return threshold.
+2. **Admission and concentration.** `RiskManager`, `PositionManager`, and `Trader` check venue balances, order frequency, position counts by pair and symbol, symbol notional relative to equity, daily-loss state, post-stop-loss suspension, execution-failure cooldown, and whether rebalancing has paused new entries.
+3. **Execution and position recovery.** Opening and closing legs are submitted concurrently. A one-leg opening fill triggers an immediate reversal attempt. Existing matched positions can be loaded during live startup, and close-leg failures are reported as critical events because residual exposure may remain.
+4. **Capital distribution.** Balance refreshes support venue-level entry eligibility. `RebalanceSupervisor` checks cash concentration across exchanges, pauses entries while rebalancing, evaluates transfer routes and fee limits, and waits for transfers or deposits before resuming normal entry checks.
+
+The daily balance halt stops new entries and lets open positions reach the flat state before the trader exits. A stop-loss sets a separate UTC-day entry suspension. Failure cooldowns are temporary and can expire without resetting the daily controls.
 
 ## Persistence and observability
 
