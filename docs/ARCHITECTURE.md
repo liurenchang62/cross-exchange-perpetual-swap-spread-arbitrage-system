@@ -11,13 +11,18 @@ The system runs as one Python process on an `asyncio` event loop. It connects di
 The diagram below shows code-level dependencies rather than the chronological trading workflow.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"}}}%%
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"},"flowchart":{"subGraphTitleMargin":{"top":14,"bottom":18}}}}%%
 flowchart TB
     subgraph Venues
         BN[Binance]
         OK[OKX]
         GA[Gate]
         BG[Bitget]
+        API[Venue API layer]
+        BN --> API
+        OK --> API
+        GA --> API
+        BG --> API
     end
     subgraph Process
         U[SymbolSelector]
@@ -33,8 +38,8 @@ flowchart TB
         RB[RebalanceSupervisor]
         L[File records]
     end
-    Venues --> U
-    Venues --> W
+    API --> U
+    API --> W
     W --> T
     T --> B
     B --> S
@@ -44,14 +49,14 @@ flowchart TB
     TR --> R
     TR --> P
     TR --> X
-    X --> Venues
+    X --> API
     RB --> R
     RB --> X
     T --> L
     P --> L
     classDef standard fill:#ffffff,stroke:#57606a,color:#24292f,stroke-width:1.5px;
     classDef control fill:#fff8c5,stroke:#9a6700,color:#24292f,stroke-width:1.5px;
-    class BN,OK,GA,BG,U,W,T,B,S,TR,P,X,RB,L standard;
+    class BN,OK,GA,BG,API,U,W,T,B,S,TR,P,X,RB,L standard;
     class C,R control;
     style Venues fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
     style Process fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
