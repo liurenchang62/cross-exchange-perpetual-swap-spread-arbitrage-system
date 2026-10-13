@@ -19,6 +19,8 @@ The system tracks temporary deviations from rolling cross-venue equilibrium spre
 
 ![System workflow from market data to capital management](docs/system-overview.svg)
 
+**Legend:** ⬜ Processing or state · 🟨 Decision or control · 🟥 Exception recovery
+
 The workflow separates market observation from execution approval. The public tick path runs in one Python process without a database, message broker, or external cache; authenticated REST clients handle contract metadata, balances, funding rates, orders, and transfers. See [Architecture](docs/ARCHITECTURE.md) for internal component boundaries and execution sequences.
 
 ## Research model

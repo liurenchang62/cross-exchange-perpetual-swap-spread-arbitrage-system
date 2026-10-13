@@ -62,6 +62,8 @@ flowchart TB
     style Process fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
 ```
 
+**Legend:** ⬜ Processing or state · 🟨 Decision or control · 🟥 Exception recovery
+
 The single event loop keeps state coordination direct. Synchronous work on the tick path must remain short; network operations are scheduled as asynchronous tasks.
 
 ## Component boundaries
