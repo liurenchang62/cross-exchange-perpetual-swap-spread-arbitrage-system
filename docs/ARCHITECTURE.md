@@ -8,59 +8,9 @@ This document describes internal component ownership, execution sequencing, and 
 
 The system runs as one Python process on an `asyncio` event loop. It connects directly to Binance, OKX, Gate, and Bitget through public WebSocket/REST endpoints and authenticated REST endpoints. No database, broker, or external cache sits on the signal path.
 
-The diagram below shows code-level dependencies rather than the chronological trading workflow.
+The diagram below shows code-level dependencies rather than the chronological trading workflow. It uses a fixed SVG canvas so labels and component boundaries remain visible at GitHub's responsive widths.
 
-```mermaid
-%%{init: {"theme":"base","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#57606a","primaryTextColor":"#24292f"},"flowchart":{"htmlLabels":false,"subGraphTitleMargin":{"top":14,"bottom":18}}}}%%
-flowchart TB
-    subgraph Venues
-        BN[Binance]
-        OK[OKX]
-        GA[Gate]
-        BG[Bitget]
-        API[Venue API layer]
-        BN --> API
-        OK --> API
-        GA --> API
-        BG --> API
-    end
-    subgraph Process
-        U[SymbolSelector]
-        W[WSFeed]
-        T[Tracker]
-        B[BaselineTracker]
-        S[SignalDetector]
-        TR[Trader]
-        C[CostModel]
-        R[RiskManager]
-        P[PositionManager]
-        X[Exchange clients]
-        RB[RebalanceSupervisor]
-        L[File records]
-    end
-    API --> U
-    API --> W
-    W --> T
-    T --> B
-    B --> S
-    T --> S
-    S --> TR
-    TR --> C
-    TR --> R
-    TR --> P
-    TR --> X
-    X --> API
-    RB --> R
-    RB --> X
-    T --> L
-    P --> L
-    classDef standard fill:#ffffff,stroke:#57606a,color:#24292f,stroke-width:1.5px;
-    classDef control fill:#fff8c5,stroke:#9a6700,color:#24292f,stroke-width:1.5px;
-    class BN,OK,GA,BG,API,U,W,T,B,S,TR,P,X,RB,L standard;
-    class C,R control;
-    style Venues fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
-    style Process fill:#f6f8fa,stroke:#d0d7de,stroke-width:1.5px,color:#24292f;
-```
+![Component architecture with venue, signal, execution, and persistence layers](component-architecture.svg)
 
 **Legend:** ⬜ Processing or state · 🟨 Decision or control · 🟥 Exception recovery
 
