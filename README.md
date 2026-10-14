@@ -156,4 +156,4 @@ The source of truth is `tracker/config.py` and `trader/config.py`. These values 
 
 ## License
 
-No open-source license has been declared. All rights remain with the repository owner.
+Released under the [MIT License](LICENSE).
